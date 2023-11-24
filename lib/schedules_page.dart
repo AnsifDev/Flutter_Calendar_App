@@ -22,7 +22,7 @@ class SchedulesPageState extends State<SchedulesPage> {
   bool updatePermitted = true;
 
   late PageController pageController;
-  ScrollController get scrollController => widget.dataProvider.scrollController;
+  // ScrollController get scrollController => widget.dataProvider.scrollController;
   CalendarFormat get calendarFormat => widget.dataProvider.calendarFormat;
   set calendarFormat(CalendarFormat value) {
     widget.dataProvider.calendarFormat = value;
@@ -33,35 +33,37 @@ class SchedulesPageState extends State<SchedulesPage> {
     widget.dataProvider.hovered = value;
   }
 
-  void scrollEventListener() {
-    if (prevOffset < scrollController.offset &&
-        calendarFormat == CalendarFormat.month) {
-      setState(() {
-        calendarFormat = CalendarFormat.week;
-      });
-    }
+  // void scrollEventListener() {
+  //   if (prevOffset < scrollController.offset &&
+  //       calendarFormat == CalendarFormat.month) {
+  //     setState(() {
+  //       calendarFormat = CalendarFormat.week;
+  //     });
+  //   }
 
-    if (scrollController.offset != 0 && !hovered) {
-      setState(() => hovered = true);
-    } else if (scrollController.offset == 0 && hovered) {
-      setState(() => hovered = false);
-    }
+  //   if (scrollController.offset != 0 && !hovered) {
+  //     setState(() => hovered = true);
+  //   } else if (scrollController.offset == 0 && hovered) {
+  //     setState(() => hovered = false);
+  //   }
 
-    prevOffset = scrollController.offset;
-  }
+  //   prevOffset = scrollController.offset;
+  // }
 
   @override
   void initState() {
-    scrollController.addListener(scrollEventListener);
-
-    pageController = PageController(initialPage: 0xffff);
+    // scrollController.addListener(scrollEventListener);
+    int ndays = DateTime.now().millisecondsSinceEpoch ~/ (1000 * 3600 * 24);
+    int fdays = widget.dataProvider.focusedDay.millisecondsSinceEpoch ~/
+        (1000 * 3600 * 24);
+    pageController = PageController(initialPage: (fdays - ndays) + 0xffff);
 
     super.initState();
   }
 
   @override
   void dispose() {
-    scrollController.removeListener(scrollEventListener);
+    // scrollController.removeListener(scrollEventListener);
     super.dispose();
   }
 
@@ -77,7 +79,6 @@ class SchedulesPageState extends State<SchedulesPage> {
       onPageChanged: (index) {
         int actualIndex = index - 0xffff;
         int diff = actualIndex - (fdays - ndays);
-        print("$diff");
         DateTime newFocusedDay = DateTime.fromMillisecondsSinceEpoch(
             DateTime.now().millisecondsSinceEpoch +
                 actualIndex * 1000 * 3600 * 24);
@@ -96,7 +97,25 @@ class SchedulesPageState extends State<SchedulesPage> {
             (today.millisecondsSinceEpoch + (24 * 3600 * 1000) * actualIndex));
 
         // print("${fdays - ndays}: $actualIndex: ${dateTime.toIso8601String()}");
-        return viewEvents(dateTime);
+        return NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (prevOffset < notification.metrics.pixels &&
+                  calendarFormat == CalendarFormat.month) {
+                setState(() {
+                  calendarFormat = CalendarFormat.week;
+                });
+              }
+
+              if (notification.metrics.pixels != 0 && !hovered) {
+                widget.dataProvider.setHomeState!(() => hovered = true);
+              } else if (notification.metrics.pixels == 0 && hovered) {
+                widget.dataProvider.setHomeState!(() => hovered = false);
+              }
+
+              prevOffset = notification.metrics.pixels;
+              return true;
+            },
+            child: viewEvents(dateTime));
       },
     );
 

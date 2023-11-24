@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_test/channels_page.dart';
 import 'package:project_test/color_schemes.dart';
 import 'package:project_test/data_provider.dart';
@@ -21,6 +22,7 @@ class Home extends StatefulWidget {
 class HomeState extends State<Home> {
   @override
   void initState() {
+    widget.dataProvider.setHomeState = setState;
     widget.dataProvider.onAppInit();
 
     super.initState();
@@ -29,6 +31,9 @@ class HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     var currentTheme = isDarkMode(context) ? darkColorScheme : lightColorScheme;
+    // var appBarTheme = AppBarTheme(
+
+    // );
 
     return MaterialApp(
       theme: ThemeData(colorScheme: lightColorScheme, useMaterial3: true),
@@ -37,8 +42,15 @@ class HomeState extends State<Home> {
       home: Scaffold(
         appBar: AppBar(
           toolbarHeight: 0,
-          surfaceTintColor:
-              (widget.dataProvider.pageIndex == 0) ? null : Colors.transparent,
+          backgroundColor: (widget.dataProvider.hovered)
+              ? currentTheme.primary.withOpacity(0.08)
+              : null,
+          systemOverlayStyle: (widget.dataProvider.hovered)
+              ? (isDarkMode(context))
+                  ? SystemUiOverlayStyle.light
+                  : SystemUiOverlayStyle.dark
+              : null,
+          surfaceTintColor: Colors.transparent,
         ),
         backgroundColor: currentTheme.background,
         body: (widget.dataProvider.pageIndex == 0)

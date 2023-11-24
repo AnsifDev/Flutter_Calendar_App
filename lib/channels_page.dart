@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:project_test/channel_page.dart';
 import 'package:project_test/data_provider.dart';
 
 class ChannelsPage extends StatefulWidget {
@@ -99,7 +100,14 @@ class ChannelsPageState extends State<ChannelsPage> {
                       subtitleTextStyle: TextStyle(
                           fontSize: 12,
                           color: widget.currentTheme.onSurface.withAlpha(150)),
-                      onTap: () => {},
+                      onTap: () => {
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (BuildContext context) {
+                          return ChannelPage(
+                            dataProvider: widget.dataProvider,
+                          );
+                        }))
+                      },
                     )),
           ),
         ),

@@ -19,7 +19,7 @@ class UpcomingPageState extends State<UpcomingPage> {
   @override
   Widget build(BuildContext context) {
     List<Event> dayEvents =
-        widget.dataProvider.getEventsFromDate(widget.dataProvider.focusedDay);
+        widget.dataProvider.getEventsFromDate(DateTime.now());
     return Column(
       children: [
         Container(
