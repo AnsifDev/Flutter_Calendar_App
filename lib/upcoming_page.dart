@@ -1,15 +1,17 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:project_test/data_provider.dart';
 import 'package:project_test/event.dart';
 import 'package:project_test/event_card.dart';
 import 'package:project_test/event_details.dart';
 
 class UpcomingPage extends StatefulWidget {
-  final DataProvider dataProvider;
+  final DataProvider dataProvider = DataProvider.getInstance();
   final ColorScheme currentTheme;
 
-  const UpcomingPage(
-      {super.key, required this.dataProvider, required this.currentTheme});
+  UpcomingPage(
+      {super.key, required this.currentTheme});
 
   @override
   State<StatefulWidget> createState() => UpcomingPageState();
@@ -38,7 +40,11 @@ class UpcomingPageState extends State<UpcomingPage> {
                     child: const CircleAvatar(
                       backgroundImage: AssetImage("assets/cat.jpg"),
                     ),
-                    onTap: () {},
+                    onTap: () {
+                      GoogleSignIn().signOut();
+                      FirebaseAuth.instance.signOut();
+                      Navigator.pushReplacementNamed(context, '/auth');
+                    },
                   )
                 ],
               );

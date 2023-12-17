@@ -5,11 +5,11 @@ import 'package:project_test/channel_page.dart';
 import 'package:project_test/data_provider.dart';
 
 class ChannelsPage extends StatefulWidget {
-  final DataProvider dataProvider;
+  final DataProvider dataProvider = DataProvider.getInstance();
   final ColorScheme currentTheme;
 
-  const ChannelsPage(
-      {super.key, required this.dataProvider, required this.currentTheme});
+  ChannelsPage(
+      {super.key, required this.currentTheme});
 
   @override
   State<StatefulWidget> createState() => ChannelsPageState();
@@ -103,9 +103,7 @@ class ChannelsPageState extends State<ChannelsPage> {
                       onTap: () => {
                         Navigator.push(context,
                             MaterialPageRoute(builder: (BuildContext context) {
-                          return ChannelPage(
-                            dataProvider: widget.dataProvider,
-                          );
+                          return ChannelPage();
                         }))
                       },
                     )),

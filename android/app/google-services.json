@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1002530083515",
+    "project_id": "asiet-calendar-app",
+    "storage_bucket": "asiet-calendar-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1002530083515:android:0174b34fcff0024d324f9e",
+        "android_client_info": {
+          "package_name": "com.example.project_test"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1002530083515-eratm8p4oo852o027udo1m68b05alair.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.project_test",
+            "certificate_hash": "b37fb41c73d2d11e3cb22b1ab157c104d12a6dab"
+          }
+        },
+        {
+          "client_id": "1002530083515-i2l7fsjrm50jeibapv8f7r10ljq4sg19.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcCco4GoQu2CUH8KFHv4-Bw0plgwOxOOY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1002530083515-i2l7fsjrm50jeibapv8f7r10ljq4sg19.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1002530083515-lnroumgbscj1jage56itb4vomjap0vh2.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.projectTest"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

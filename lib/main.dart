@@ -1,19 +1,31 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:project_test/event_edit_bottom_sheet.dart';
 import 'package:project_test/channels_page.dart';
 import 'package:project_test/color_schemes.dart';
 import 'package:project_test/data_provider.dart';
+import 'package:project_test/event.dart';
 import 'package:project_test/schedules_page.dart';
 import 'package:project_test/upcoming_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'home_page.dart';
+import 'firebase_options.dart';
 
-void main() {
-  runApp(Home(dataProvider: DataProvider()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure that the Flutter bindings are initialized.
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(Home());
 }
 
 class Home extends StatefulWidget {
-  final DataProvider dataProvider;
+  final DataProvider dataProvider = DataProvider.getInstance();
 
-  const Home({super.key, required this.dataProvider});
+  Home({super.key});
 
   @override
   State<StatefulWidget> createState() => HomeState();
@@ -30,76 +42,55 @@ class HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    var currentTheme = isDarkMode(context) ? darkColorScheme : lightColorScheme;
-    // var appBarTheme = AppBarTheme(
-
-    // );
-
     return MaterialApp(
       theme: ThemeData(colorScheme: lightColorScheme, useMaterial3: true),
       darkTheme: ThemeData(colorScheme: darkColorScheme, useMaterial3: true),
       themeMode: widget.dataProvider.themeMode,
-      home: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 0,
-          backgroundColor: (widget.dataProvider.hovered)
-              ? currentTheme.primary.withOpacity(0.08)
-              : null,
-          systemOverlayStyle: (widget.dataProvider.hovered)
-              ? (isDarkMode(context))
-                  ? SystemUiOverlayStyle.light
-                  : SystemUiOverlayStyle.dark
-              : null,
-          surfaceTintColor: Colors.transparent,
-        ),
-        backgroundColor: currentTheme.background,
-        body: (widget.dataProvider.pageIndex == 0)
-            ? SchedulesPage(
-                dataProvider: widget.dataProvider, currentTheme: currentTheme)
-            : (widget.dataProvider.pageIndex == 2)
-                ? ChannelsPage(
-                    dataProvider: widget.dataProvider,
-                    currentTheme: currentTheme,
-                  )
-                : UpcomingPage(
-                    dataProvider: widget.dataProvider,
-                    currentTheme: currentTheme),
-        floatingActionButton: FloatingActionButton.extended(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              setState(() {
-                widget.dataProvider.themeMode =
-                    isDarkMode(context) ? ThemeMode.light : ThemeMode.dark;
-              });
-            },
-            label: (widget.dataProvider.pageIndex != 2)
-                ? const Text("New Event")
-                : const Text("New Channel")),
-        bottomNavigationBar: NavigationBar(
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.event), label: "Schedules"),
-            NavigationDestination(
-                icon: Icon(Icons.upcoming), label: "Upcoming Events"),
-            NavigationDestination(
-                icon: Icon(Icons.chat), label: "Event Channels")
-          ],
-          onDestinationSelected: (index) => setState(() {
-            widget.dataProvider.pageIndex = index;
-            widget.dataProvider.hovered = false;
-          }),
-          selectedIndex: widget.dataProvider.pageIndex,
-        ),
+      routes: {
+        '/auth': (context) => const AuthPage(),
+        '/home': (context) => HomePage(),
+      },
+      home: FirebaseAuth.instance.currentUser == null? const AuthPage(): HomePage()
+    );
+  }
+}
+
+class AuthPage extends StatefulWidget {
+  const AuthPage({super.key});
+
+  @override
+  State<StatefulWidget> createState() => AuthPageState();
+}
+
+class AuthPageState extends State<AuthPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: FilledButton(onPressed: () {
+          signInWithGoogle().then((value) {
+            Navigator.pushReplacementNamed(context, '/home');
+          }).onError((error, stackTrace) { print(stackTrace); });
+        }, child: const Text("Sign In")),
       ),
     );
   }
 
-  bool isDarkMode(BuildContext context) {
-    return widget.dataProvider.themeMode == ThemeMode.dark ||
-        (widget.dataProvider.themeMode == ThemeMode.system &&
-            MediaQuery.of(context).platformBrightness == Brightness.dark);
-  }
+  Future<UserCredential> signInWithGoogle() async {
+    // Trigger the authentication flow
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-  Widget upcomingPage(ColorScheme currentTheme) {
-    return Container();
+    // Obtain the auth details from the request
+    final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+
+    // Create a new credential
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth?.accessToken,
+      idToken: googleAuth?.idToken,
+    );
+
+    // Once signed in, return the UserCredential
+    return await FirebaseAuth.instance.signInWithCredential(credential);
   }
 }

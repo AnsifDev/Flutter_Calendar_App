@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:project_test/event.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EventDetails extends StatefulWidget {
   final Event event;
@@ -27,13 +30,13 @@ class EventDetailsState extends State<EventDetails> {
                     const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
-            if (widget.event.image)
+            if (widget.event.image != null)
               Container(
                 decoration:
                     BoxDecoration(borderRadius: BorderRadius.circular(10)),
                 clipBehavior: Clip.hardEdge,
-                child: Image.asset(
-                  "assets/img_example.jpeg",
+                child: Image.network(
+                  widget.event.image!,
                   fit: BoxFit.fitWidth,
                 ),
               ),
@@ -49,50 +52,54 @@ class EventDetailsState extends State<EventDetails> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Expanded(
-                      child: Row(children: [
-                        Icon(
-                          Icons.calendar_month_rounded,
-                          size: 36,
-                        ),
-                        SizedBox.square(
-                          dimension: 10,
-                        ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                          // mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text("10:30 AM"),
-                            Text("18 Nov 2023"),
-                          ],
-                        )
-                      ]),
+                            Icon(
+                              Icons.calendar_month_rounded,
+                              size: 36,
+                            ),
+                            SizedBox.square(
+                              dimension: 10,
+                            ),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("10:30 AM"),
+                                Text("18 Nov 2023"),
+                              ],
+                            )
+                          ]),
                     ),
-                    const VerticalDivider(
-                      width: 20,
-                      indent: 5,
-                      endIndent: 5,
-                      color: Colors.white,
-                    ),
-                    Expanded(
-                      child: Container(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: const Row(children: [
-                          Icon(
-                            Icons.place,
-                            size: 32,
-                          ),
-                          SizedBox.square(
-                            dimension: 10,
-                          ),
-                          Text("ADP LAB"),
-                        ]),
+                    if (widget.event.location != null)
+                      const VerticalDivider(
+                        width: 20,
+                        indent: 5,
+                        endIndent: 5,
+                        color: Colors.white,
                       ),
-                    ),
+                    if (widget.event.location != null)
+                      Expanded(
+                        child: Container(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: const Row(children: [
+                            Icon(
+                              Icons.place,
+                              size: 32,
+                            ),
+                            SizedBox.square(
+                              dimension: 10,
+                            ),
+                            Text("ADP LAB"),
+                          ]),
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
-            if (widget.event.owner != null)
+            if (widget.event.channel != null)
               Container(
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
@@ -121,7 +128,7 @@ class EventDetailsState extends State<EventDetails> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          widget.event.owner!,
+                          widget.event.channel!.title,
                           style: const TextStyle(fontSize: 16),
                         ),
                       )
@@ -140,84 +147,50 @@ class EventDetailsState extends State<EventDetails> {
               margin: const EdgeInsets.only(top: 6),
               child: Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Container(
+                children:
+                    List<Widget>.generate(widget.event.tags.length, (index) {
+                  return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 2),
                     child: Chip(
-                      label: const Text("Sports"),
+                      label: Text(widget.event.tags[index]),
                       backgroundColor: currentTheme.secondaryContainer,
                       side: BorderSide(color: currentTheme.secondary),
                       padding: const EdgeInsets.all(6),
                     ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Chip(
-                      label: const Text("Cricket"),
-                      backgroundColor: currentTheme.secondaryContainer,
-                      side: BorderSide(color: currentTheme.secondary),
-                      padding: const EdgeInsets.all(6),
-                    ),
-                  ),
-                ],
+                  );
+                }),
               ),
             ),
             Container(
               margin: const EdgeInsets.only(top: 6),
               child: Wrap(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    child: ActionChip(
-                      label: const Text("Register Event"),
-                      avatar: Icon(
-                        Icons.link_rounded,
-                        color: currentTheme.onSecondaryContainer,
-                      ),
-                      onPressed: () {},
-                      backgroundColor: currentTheme.secondaryContainer,
-                      side:
-                          BorderSide(color: currentTheme.onSecondaryContainer),
+                  children:
+                      List<Widget>.generate(widget.event.links.length, (index) {
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  child: ActionChip(
+                    label: Text(widget.event.links[index].title),
+                    avatar: Icon(
+                      Icons.link_rounded,
+                      color: currentTheme.onSecondaryContainer,
                     ),
+                    onPressed: () {
+                      launchUrl(Uri.parse(widget.event.links[index].link));
+                    },
+                    backgroundColor: currentTheme.secondaryContainer,
+                    side: BorderSide(color: currentTheme.onSecondaryContainer),
                   ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    child: ActionChip(
-                      label: const Text("Follow on Instagram"),
-                      avatar: Icon(
-                        Icons.link_rounded,
-                        color: currentTheme.onSecondaryContainer,
-                      ),
-                      onPressed: () {},
-                      backgroundColor: currentTheme.secondaryContainer,
-                      side:
-                          BorderSide(color: currentTheme.onSecondaryContainer),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    child: ActionChip(
-                      label: const Text("Join WhatsApp Channel"),
-                      avatar: Icon(
-                        Icons.link_rounded,
-                        color: currentTheme.onSecondaryContainer,
-                      ),
-                      onPressed: () {},
-                      backgroundColor: currentTheme.secondaryContainer,
-                      side:
-                          BorderSide(color: currentTheme.onSecondaryContainer),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              })),
             ),
-            Container(
-              margin: const EdgeInsets.all(8),
-              child: const Text(
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
-                textAlign: TextAlign.justify,
+            if (widget.event.description != null)
+              Container(
+                margin: const EdgeInsets.all(8),
+                child: Text(
+                  widget.event.description!,
+                  textAlign: TextAlign.justify,
+                ),
               ),
-            ),
           ],
         ),
       ),
