@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:project_test/data_provider.dart';
-import 'package:project_test/event.dart';
+import 'package:project_test/database/event.dart';
 import 'package:project_test/event_card.dart';
 import 'package:project_test/event_details.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class SchedulesPage extends StatefulWidget {
-  final DataProvider dataProvider;
-  final ColorScheme currentTheme;
+  final dataProvider = DataProvider.instance;
 
-  const SchedulesPage(
-      {super.key, required this.dataProvider, required this.currentTheme});
+  SchedulesPage({super.key});
 
   @override
   State<StatefulWidget> createState() => SchedulesPageState();
@@ -70,15 +68,15 @@ class SchedulesPageState extends State<SchedulesPage> {
   @override
   Widget build(BuildContext context) {
     const duration = Duration(milliseconds: 200);
-    int ndays = DateTime.now().millisecondsSinceEpoch ~/ (1000 * 3600 * 24);
-    int fdays = widget.dataProvider.focusedDay.millisecondsSinceEpoch ~/
+    int nDays = DateTime.now().millisecondsSinceEpoch ~/ (1000 * 3600 * 24);
+    int fDays = widget.dataProvider.focusedDay.millisecondsSinceEpoch ~/
         (1000 * 3600 * 24);
-    // print("${widget.dataProvider.focusedDay.day}");
+    var currentTheme = Theme.of(context).colorScheme;
 
     var pageView = PageView.builder(
       onPageChanged: (index) {
         int actualIndex = index - 0xffff;
-        int diff = actualIndex - (fdays - ndays);
+        int diff = actualIndex - (fDays - nDays);
         DateTime newFocusedDay = DateTime.fromMillisecondsSinceEpoch(
             DateTime.now().millisecondsSinceEpoch +
                 actualIndex * 1000 * 3600 * 24);
@@ -96,7 +94,7 @@ class SchedulesPageState extends State<SchedulesPage> {
         DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(
             (today.millisecondsSinceEpoch + (24 * 3600 * 1000) * actualIndex));
 
-        // print("${fdays - ndays}: $actualIndex: ${dateTime.toIso8601String()}");
+        // print("${fDays - nDays}: $actualIndex: ${dateTime.toIso8601String()}");
         return NotificationListener<ScrollNotification>(
             onNotification: (notification) {
               if (prevOffset < notification.metrics.pixels &&
@@ -120,10 +118,9 @@ class SchedulesPageState extends State<SchedulesPage> {
     );
 
     if (scrollAttached) {
-      pageController.animateToPage((fdays - ndays) + 0xffff,
+      pageController.animateToPage((fDays - nDays) + 0xffff,
           duration: const Duration(milliseconds: 200), curve: Curves.ease);
     }
-
     scrollAttached = true;
 
     return Column(
@@ -132,10 +129,10 @@ class SchedulesPageState extends State<SchedulesPage> {
           duration: duration,
           child: Container(
             color: widget.dataProvider.hovered
-                ? widget.currentTheme.primary.withOpacity(0.08)
-                : widget.currentTheme.primary.withOpacity(0),
+                ? currentTheme.primary.withOpacity(0.08)
+                : currentTheme.primary.withOpacity(0),
             child: buildCalendarWidget(
-                currentTheme: widget.currentTheme, duration: duration),
+                currentTheme: currentTheme, duration: duration),
           ),
         ),
         Expanded(child: pageView)
@@ -217,50 +214,69 @@ class SchedulesPageState extends State<SchedulesPage> {
   Widget viewEvents(DateTime dateTime) {
     List<Event> dayEvents = widget.dataProvider.getEventsOn(dateTime);
     // print("${dayEvents.length}");
-    return (dayEvents.isEmpty)
-        ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(
-              Icons.event_busy,
-              size: 200,
-              color: widget.currentTheme.onSurface.withOpacity(0.2),
-            ),
-            Text(
-              "No events this day.\nSchedule some right away",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 24,
-                  color: widget.currentTheme.onSurface.withOpacity(0.6),
-                  fontWeight: FontWeight.bold),
-            )
-          ])
-        : ListView.builder(
-            // controller: widget.dataProvider.scrollController,
-            itemCount: dayEvents.length,
-            itemBuilder: (buildContext, index) {
-              return GestureDetector(
-                onTap: () {
-                  showModalBottomSheet(
-                      isScrollControlled: true,
-                      enableDrag: true,
-                      useSafeArea: true,
-                      showDragHandle: true,
-                      context: buildContext,
-                      builder: (builder) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          margin: const EdgeInsets.only(bottom: 32),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [EventDetails(event: dayEvents[index])],
-                          ),
-                        );
-                      });
-                },
-                child: EventCard(
-                  event: dayEvents[index],
-                ),
-              );
-            });
+    return EventsListView(events: dayEvents, showTime: true,);
+  }
+}
+
+class EventsListView extends StatefulWidget {
+  final List<Event> events;
+  late final String emptyMsg;
+  final void Function(Event)? onRemove;
+  final void Function(Event)? onSave;
+  final bool showTime;
+
+  EventsListView({super.key, required this.events, String? emptyMsg, this.onRemove, this.onSave, this.showTime = false}) {
+    this.emptyMsg = emptyMsg ?? "No events this day.\nSchedule some right away";
+  }
+
+  @override
+  State<StatefulWidget> createState() => EventsListViewState();
+
+}
+
+class EventsListViewState extends State<EventsListView> {
+  @override
+  Widget build(BuildContext context) {
+    return (widget.events.isEmpty) ?  Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.event_busy,
+          size: 200,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+        ),
+        Text(widget.emptyMsg,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 24,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            fontWeight: FontWeight.bold
+          ),
+        )
+      ]
+    ): ListView.builder(
+      itemCount: widget.events.length,
+      itemBuilder: (buildContext, index) {
+        var event = widget.events[index];
+        return GestureDetector(
+          onTap: () {
+            showModalBottomSheet(
+              isScrollControlled: true,
+              useSafeArea: true,
+              showDragHandle: true,
+              context: buildContext,
+              builder: (builder) {
+                return EventDetails(event: event, onRemove: widget.onRemove, onSave: widget.onSave,);
+              }
+            );
+          },
+          child: EventCard(
+            event: widget.events[index],
+            showTime: widget.showTime,
+            onRemove: () => widget.onRemove == null? null: widget.onRemove!(widget.events[index]),
+          ),
+        );
+      }
+    );
   }
 }

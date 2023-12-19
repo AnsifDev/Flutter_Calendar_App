@@ -1,8 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:project_test/event.dart';
+import 'package:project_test/database/event.dart';
+import 'package:project_test/database/user.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+import 'database/channel.dart';
 
 class DataProvider {
   var themeMode = ThemeMode.dark;
@@ -11,33 +15,68 @@ class DataProvider {
   var focusedDay = DateTime.now();
   var calendarFormat = CalendarFormat.week;
   var channelLength = 25 + Random().nextInt(25);
-  Event? eventEditBottomSheetEvent;
 
+  late FirebaseDatabase database;
   late List<Event> events;
   late ScrollController scrollController;
+  Channel? channelASIET;
+  late List<Event> channelAsietEvents;
 
   DataProvider._();
 
   void Function(void Function() callback)? setHomeState;
+  
+  Future<void> loadEventsFrom(List<String> src, List<Event> dest) async {
+    var trash = <String>[];
+    var processes = <Future<Event?>>[];
+
+    for (var eventId in src) {
+      var process = EventsDatabase.instance.get(eventId);
+      processes.add(process);
+      process.then((event) {
+        if (event != null) { setHomeState!(() { dest.add(event); }); }
+        else { trash.add(eventId); }
+      });
+    }
+
+    for (var process in processes) { await process; }
+
+    while(trash.isNotEmpty) { src.remove(trash.removeAt(0)); }
+  }
+
+  void loadEvents() async {
+    var currentUser = await CurrentUser.instance;
+
+    var load1 = loadEventsFrom(currentUser.events, events);
+    var load2 = loadEventsFrom(currentUser.followingEvents, events);
+
+
+    channelASIET = await ChannelsDatabase.instance.get("asiet");
+    if (channelASIET == null) {
+      channelASIET = Channel(
+          id: "asiet",
+          title: "ASIET",
+          description: "ASIET Official Global Channel"
+      );
+      ChannelsDatabase.instance.save(channelASIET!);
+    }
+
+    var load3 = loadEventsFrom(channelASIET!.events, channelAsietEvents);
+
+    await load1;
+    await load2;
+    await load3;
+    currentUser.save();
+    ChannelsDatabase.instance.save(channelASIET!);
+  }
 
   void onAppInit() {
     scrollController = ScrollController();
+    database = FirebaseDatabase.instance;
+    loadEvents();
 
-    events = List<Event>.generate(100, (index) {
-      var event = Event(
-          title: "Event $index",
-          dateTime: DateTime(
-              2023,
-              DateTime.now().month,
-              Random().nextInt(31) + 1,
-              Random().nextInt(23),
-              Random().nextInt(6) * 10),
-          image: Random().nextBool()
-              ? "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/copy-of-event-poster-design-template-aec8f854474878ad32eb54d38b40f85c_screen.jpg?ts=1567084345"
-              : null);
-      event.links.add(EventLink("Register", "https://www.google.com"));
-      return event;
-    });
+    events = List<Event>.empty(growable: true);
+    channelAsietEvents = List<Event>.empty(growable: true);
   }
 
   List<Event> getFocusedDayEvents() {
@@ -64,9 +103,10 @@ class DataProvider {
     return dayEvents;
   }
 
-  static DataProvider? instance;
-  static DataProvider getInstance() {
-    instance ??= DataProvider._();
-    return instance!;
+  static DataProvider? _instance;
+
+  static DataProvider get instance {
+    _instance ??= DataProvider._();
+    return _instance!;
   }
 }

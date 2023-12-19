@@ -5,7 +5,7 @@ import 'package:project_test/channel_page.dart';
 import 'package:project_test/data_provider.dart';
 
 class ChannelsPage extends StatefulWidget {
-  final DataProvider dataProvider = DataProvider.getInstance();
+  final DataProvider dataProvider = DataProvider.instance;
   final ColorScheme currentTheme;
 
   ChannelsPage(
@@ -45,8 +45,6 @@ class ChannelsPageState extends State<ChannelsPage> {
 
   @override
   Widget build(BuildContext context) {
-    var badgeCounts = List<int>.generate(
-        widget.dataProvider.channelLength, (index) => Random().nextInt(10));
     return Column(
       children: [
         AnimatedContainer(

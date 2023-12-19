@@ -2,28 +2,43 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:project_test/data_provider.dart';
-import 'package:project_test/database/event.dart';
 import 'package:project_test/schedules_page.dart';
 
-class UpcomingPage extends StatefulWidget {
-  final DataProvider dataProvider = DataProvider.instance;
-  final ColorScheme currentTheme;
+import 'database/channel.dart';
 
-  UpcomingPage(
-      {super.key, required this.currentTheme});
+class ASIETChannelPage extends StatefulWidget {
+  ASIETChannelPage({super.key});
+
+  final DataProvider dataProvider = DataProvider.instance;
 
   @override
-  State<StatefulWidget> createState() => UpcomingPageState();
+  State<StatefulWidget> createState() => ASIETChannelPageState();
 }
 
-class UpcomingPageState extends State<UpcomingPage> {
+class ASIETChannelPageState extends State<ASIETChannelPage> {
+  late final Channel channelASIET;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // var channelsDB = ChannelsDatabase.instance;
+    // channelsDB.get("asiet").then((c) {
+    //   channelASIET = c!;
+    //   for (var eventId in channelASIET.events) {
+    //     EventsDatabase.instance.get(eventId).then((event) => setState(() {
+    //       if (event != null) events.add(event);
+    //     }));
+    //   }
+    // });
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<Event> dayEvents =
-        widget.dataProvider.getEventsFromDate(DateTime.now());
     return Column(
       children: [
-        Container(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: SearchAnchor(
             builder: (BuildContext context, SearchController controller) {
@@ -32,7 +47,7 @@ class UpcomingPageState extends State<UpcomingPage> {
                 controller: controller,
                 padding: const MaterialStatePropertyAll<EdgeInsets>(
                     EdgeInsets.only(left: 16, right: 8)),
-                hintText: "Search Events",
+                hintText: "Search Channels",
                 leading: const Icon(Icons.search),
                 trailing: <Widget>[
                   GestureDetector(
@@ -57,7 +72,6 @@ class UpcomingPageState extends State<UpcomingPage> {
                           ],
                         );
                       }, );
-
                     },
                   )
                 ],
@@ -69,7 +83,7 @@ class UpcomingPageState extends State<UpcomingPage> {
             },
           ),
         ),
-        Expanded(child: EventsListView(events: dayEvents))
+        Expanded(child: EventsListView(events: widget.dataProvider.channelAsietEvents, emptyMsg: "No Events So far"))
       ],
     );
   }

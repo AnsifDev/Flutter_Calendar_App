@@ -1,14 +1,11 @@
+import 'dart:developer';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:project_test/event_edit_bottom_sheet.dart';
-import 'package:project_test/channels_page.dart';
 import 'package:project_test/color_schemes.dart';
 import 'package:project_test/data_provider.dart';
-import 'package:project_test/event.dart';
-import 'package:project_test/schedules_page.dart';
-import 'package:project_test/upcoming_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'home_page.dart';
 import 'firebase_options.dart';
@@ -19,11 +16,12 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  FirebaseDatabase.instance.setPersistenceEnabled(true);
   runApp(Home());
 }
 
 class Home extends StatefulWidget {
-  final DataProvider dataProvider = DataProvider.getInstance();
+  final DataProvider dataProvider = DataProvider.instance;
 
   Home({super.key});
 
@@ -35,7 +33,6 @@ class HomeState extends State<Home> {
   @override
   void initState() {
     widget.dataProvider.setHomeState = setState;
-    widget.dataProvider.onAppInit();
 
     super.initState();
   }
@@ -68,11 +65,19 @@ class AuthPageState extends State<AuthPage> {
     return Scaffold(
       appBar: AppBar(),
       body: Center(
-        child: FilledButton(onPressed: () {
-          signInWithGoogle().then((value) {
-            Navigator.pushReplacementNamed(context, '/home');
-          }).onError((error, stackTrace) { print(stackTrace); });
-        }, child: const Text("Sign In")),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Image.asset('assets/intro.png',width: 300,),
+            FilledButton(onPressed: () {
+              signInWithGoogle().then((value) {
+                Navigator.pushReplacementNamed(context, '/home');
+              }).onError((error, stackTrace) { log(stackTrace.toString()); });
+            }, child: const Text("Sign In")),
+          ],
+        ),
       ),
     );
   }
@@ -93,4 +98,13 @@ class AuthPageState extends State<AuthPage> {
     // Once signed in, return the UserCredential
     return await FirebaseAuth.instance.signInWithCredential(credential);
   }
+}
+
+String getFormattedTime(DateTime dateTime) {
+  var halfNotation = dateTime.hour < 12 ? "AM" : "PM";
+  var hour = dateTime.hour % 12;
+  var minute = dateTime.minute;
+  var formattedTime =
+      "${hour < 10 && hour != 0 ? "0" : ""}${hour == 0 ? 12 : hour}:${minute < 10? "0":""}$minute $halfNotation";
+  return formattedTime;
 }

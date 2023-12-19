@@ -1,18 +1,23 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:project_test/data_provider.dart';
-import 'event.dart';
+import 'database/event.dart';
+import 'main.dart';
 
 class EventEditBottomSheet extends StatefulWidget {
-
-  EventEditBottomSheet({super.key, Event? event}) {
+  EventEditBottomSheet({super.key, Event? event, this.channel, this.onSave}) {
     updateMode = event != null;
-    DataProvider.getInstance().eventEditBottomSheetEvent ??= event ?? Event();
-    this.event = DataProvider.getInstance().eventEditBottomSheetEvent!;
+    this.event = event ?? Event(channel: channel, id: EventsDatabase.instance.getNewId());
   }
 
-  final dataProvider = DataProvider.getInstance();
+  final dataProvider = DataProvider.instance;
   late final Event event;
   late final bool updateMode;
+  final String? channel;
+  final void Function(Event)? onSave;
 
   @override
   State<StatefulWidget> createState() => EventEditBottomSheetState();
@@ -37,77 +42,92 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
   late TextEditingController eventName;
   late TextEditingController description;
   late TextEditingController location;
-
-
+  late Event event;
+  String? imageUrl;
+  var saveButtonEnabled = false;
+  var uploading = false;
+  
   @override
   void initState() {
+    super.initState();
     eventName = TextEditingController();
+    eventName.addListener(() {
+      setState(() {
+        saveButtonEnabled = eventName.text.isNotEmpty;
+      });
+    });
     description = TextEditingController();
     location = TextEditingController();
+    event = widget.event;
+
+    eventName.text = event.title;
+    description.text = event.description ?? "";
+    location.text = event.location ?? "";
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        buildTitleField(context, eventName),
-        const Divider(),
-        buildDateTimeField(context),
-        buildLocationField(context, location),
-        const Divider(),
-        Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: buildTagInputFiled(context)),
-        const Divider(),
-        Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: buildLinkInputField(context)),
-        const Divider(),
-        Container(
-            margin: const EdgeInsets.symmetric(horizontal: 24),
-            child: TextField(
-              controller: description,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                  border: InputBorder.none, hintText: "Description"),
-            )),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Row(
-            children: [
-              Expanded(
-                  child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Cancel"))),
-              const SizedBox.square(
-                dimension: 10,
+    return Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 24),
+        child: SingleChildScrollView(child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            buildTitleField(context, eventName),
+            const Divider(),
+            buildDateTimeField(context),
+            buildLocationField(context, location),
+            const Divider(),
+            Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: buildTagInputFiled(context)),
+            const Divider(),
+            Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: buildLinkInputField(context)),
+            const Divider(),
+            Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                child: TextField(
+                  controller: description,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                      border: InputBorder.none, hintText: "Description"),
+                )),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                      child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            if (imageUrl != null) FirebaseStorage.instance.ref("EventImages/${event.id}").delete();
+                          },
+                          child: const Text("Cancel"))),
+                  const SizedBox.square(
+                    dimension: 10,
+                  ),
+                  Expanded(
+                      child: FilledButton(
+                          onPressed: saveButtonEnabled && !uploading? () {
+                            if (widget.onSave != null) widget.onSave!(event);
+                            widget.dataProvider.setHomeState!(() {
+                              if (eventName.text.isNotEmpty) event.title = eventName.text;
+                              if (description.text.isNotEmpty) event.description = description.text;
+                              if (location.text.isNotEmpty) event.location = location.text;
+                              if (!widget.updateMode && event.channel == null) widget.dataProvider.events.add(event);
+                              if (imageUrl != null) event.imageUrl = imageUrl;
+                              EventsDatabase.instance.save(event);
+                            });
+                            Navigator.pop(context);
+                          }: null,
+                          child: Text(uploading? "Uploading": "Save"))),
+                ],
               ),
-              Expanded(
-                  child: FilledButton(
-                      onPressed: () {
-                        setState(() {
-                          widget.event.title = eventName.text;
-                          if (description.text.isNotEmpty) {
-                            widget.event.description = description.text;
-                          }
-                          if (!widget.updateMode) {
-                            widget.dataProvider.events.add(widget.event);
-                          }
-                          if (location.text.isNotEmpty) {
-                            widget.event.location = location.text;
-                          }
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Save"))),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        ))
     );
   }
 
@@ -115,6 +135,7 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -129,10 +150,47 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 20)),
               ),
-              IconButton(
-                  onPressed: () {}, icon: const Icon(Icons.image_outlined))
+              if (event.imageUrl == null && imageUrl == null && !uploading) IconButton(
+                  onPressed: () {
+                    FilePicker.platform.pickFiles().then((value) {
+                      if (value != null) {
+                        File file = File(value.files.single.path!);
+                        var fileRef = FirebaseStorage.instance.ref('EventImages/${event.id}');
+                        setState(() { uploading = true; });
+                        fileRef.putFile(file).snapshotEvents.listen((transferSnapshot) {
+                          switch (transferSnapshot.state) {
+                            // case TaskState.running:
+                              // final progress =
+                              //     100.0 * (transferSnapshot.bytesTransferred / transferSnapshot.totalBytes);
+                              // break;
+                            case TaskState.error:
+                              setState(() { uploading = false; });
+                              break;
+                            case TaskState.success:
+                            // Handle successful uploads on complete
+                              fileRef.getDownloadURL().then((value) {
+                                setState(() {
+                                  imageUrl = value;
+                                  uploading = false;
+                                });
+                              });
+                              break;
+                            default: break;
+                          }
+                        });
+                      }
+                    });
+                  }, icon: const Icon(Icons.image_outlined))
             ],
           ),
+          if (event.imageUrl != null || imageUrl != null) InputChip(
+            label: const Text("Event Display Image"),
+            onDeleted: () {
+              setState(() {
+                FirebaseStorage.instance.ref("EventImages/${event.id}").delete();
+                event.imageUrl = imageUrl = null;
+              });
+            },)
         ],
       ),
     );
@@ -158,18 +216,18 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
                     .then((value) {
                   if (value != null) {
                     setState(() {
-                      widget.event.dateTime = DateTime(
+                      event.dateTime = DateTime(
                           value.year,
                           value.month,
                           value.day,
-                          widget.event.dateTime.hour,
-                          widget.event.dateTime.minute);
+                          event.dateTime.hour,
+                          event.dateTime.minute);
                     });
                   }
                 });
               },
               child: Text(
-                "${months[widget.event.dateTime.month - 1]} ${widget.event.dateTime.day}, ${widget.event.dateTime.year}",
+                "${months[event.dateTime.month - 1]} ${event.dateTime.day}, ${event.dateTime.year}",
                 style: const TextStyle(fontSize: 16),
               ),
             ),
@@ -183,30 +241,22 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
                   .then((value) {
                 if (value != null) {
                   setState(() {
-                    widget.event.dateTime = DateTime(
-                        widget.event.dateTime.year,
-                        widget.event.dateTime.month,
-                        widget.event.dateTime.day,
+                    event.dateTime = DateTime(
+                        event.dateTime.year,
+                        event.dateTime.month,
+                        event.dateTime.day,
                         value.hour,
                         value.minute);
                   });
                 }
               });
             },
-            child: Text(getFormattedTime(widget.event.dateTime),
+            child: Text(getFormattedTime(event.dateTime),
                 style: const TextStyle(fontSize: 16)),
           )
         ],
       ),
     );
-  }
-
-  String getFormattedTime(DateTime dateTime) {
-    var halfNotation = dateTime.hour < 12 ? "AM" : "PM";
-    var hour = dateTime.hour % 12;
-    var formattedTime =
-        "${hour < 10 && hour != 0 ? "0" : ""}${hour == 0 ? 12 : hour}:${dateTime.minute} $halfNotation";
-    return formattedTime;
   }
 
   Widget buildLocationField(BuildContext context, TextEditingController location) {
@@ -255,7 +305,7 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
                   onPressed: () {
                     if (tagName.text.isNotEmpty) {
                       setState(() {
-                        widget.event.tags.add(tagName.text);
+                        event.tags.add(tagName.text);
                         tagName.text = "";
                       });
                     }
@@ -268,14 +318,14 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
           margin: const EdgeInsets.symmetric(horizontal: 24),
           child: Wrap(
             alignment: WrapAlignment.start,
-            children: List<Widget>.generate(widget.event.tags.length, (index) {
+            children: List<Widget>.generate(event.tags.length, (index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: InputChip(
-                  label: Text(widget.event.tags[index]),
+                  label: Text(event.tags[index]),
                   onDeleted: () {
                     setState(() {
-                      widget.event.tags.removeAt(index);
+                      event.tags.removeAt(index);
                     });
                   },
                 ),
@@ -318,7 +368,7 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
                     if (linkTitle.text.isNotEmpty &&
                         linkAddress.text.isNotEmpty) {
                       setState(() {
-                        widget.event.links
+                        event.links
                             .add(EventLink(linkTitle.text, linkAddress.text));
                         linkTitle.text = linkAddress.text = "";
                       });
@@ -332,14 +382,14 @@ class EventEditBottomSheetState extends State<EventEditBottomSheet> {
           margin: const EdgeInsets.symmetric(horizontal: 24),
           child: Wrap(
             alignment: WrapAlignment.start,
-            children: List<Widget>.generate(widget.event.links.length, (index) {
+            children: List<Widget>.generate(event.links.length, (index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: InputChip(
-                  label: Text(widget.event.links[index].title),
+                  label: Text(event.links[index].title),
                   onDeleted: () {
                     setState(() {
-                      widget.event.links.removeAt(index);
+                      event.links.removeAt(index);
                     });
                   },
                 ),

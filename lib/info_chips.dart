@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'main.dart';
+
 class InfoChips extends StatelessWidget {
   final bool inline;
   final String? owner;
@@ -69,13 +71,5 @@ class InfoChips extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String getFormattedTime(DateTime dateTime) {
-    var halfNotation = dateTime.hour < 12 ? "AM" : "PM";
-    var hour = dateTime.hour % 12;
-    var formattedTime =
-        "${hour < 10 && hour != 0 ? "0" : ""}${hour == 0 ? 12 : hour}:${dateTime.minute} $halfNotation";
-    return formattedTime;
   }
 }
