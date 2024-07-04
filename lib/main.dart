@@ -11,7 +11,8 @@ import 'home_page.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Ensure that the Flutter bindings are initialized.
+  WidgetsFlutterBinding
+      .ensureInitialized(); // Ensure that the Flutter bindings are initialized.
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -40,15 +41,16 @@ class HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(colorScheme: lightColorScheme, useMaterial3: true),
-      darkTheme: ThemeData(colorScheme: darkColorScheme, useMaterial3: true),
-      themeMode: widget.dataProvider.themeMode,
-      routes: {
-        '/auth': (context) => const AuthPage(),
-        '/home': (context) => HomePage(),
-      },
-      home: FirebaseAuth.instance.currentUser == null? const AuthPage(): HomePage()
-    );
+        theme: ThemeData(colorScheme: lightColorScheme, useMaterial3: true),
+        darkTheme: ThemeData(colorScheme: darkColorScheme, useMaterial3: true),
+        themeMode: widget.dataProvider.themeMode,
+        routes: {
+          '/auth': (context) => const AuthPage(),
+          '/home': (context) => HomePage(),
+        },
+        home: FirebaseAuth.instance.currentUser == null
+            ? const AuthPage()
+            : HomePage());
   }
 }
 
@@ -70,12 +72,20 @@ class AuthPageState extends State<AuthPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset('assets/intro.png',width: 300,),
-            FilledButton(onPressed: () {
-              signInWithGoogle().then((value) {
-                Navigator.pushReplacementNamed(context, '/home');
-              }).onError((error, stackTrace) { log(stackTrace.toString()); });
-            }, child: const Text("Sign In")),
+            Image.asset(
+              'assets/intro.png',
+              width: 300,
+            ),
+            FilledButton(
+                onPressed: () {
+                  signInWithGoogle().then((value) {
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }).onError((error, stackTrace) {
+                    log("Error: $error");
+                    // error.toString();
+                  });
+                },
+                child: const Text("Sign In")),
           ],
         ),
       ),
@@ -87,7 +97,8 @@ class AuthPageState extends State<AuthPage> {
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
     // Obtain the auth details from the request
-    final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+    final GoogleSignInAuthentication? googleAuth =
+        await googleUser?.authentication;
 
     // Create a new credential
     final credential = GoogleAuthProvider.credential(
@@ -105,6 +116,6 @@ String getFormattedTime(DateTime dateTime) {
   var hour = dateTime.hour % 12;
   var minute = dateTime.minute;
   var formattedTime =
-      "${hour < 10 && hour != 0 ? "0" : ""}${hour == 0 ? 12 : hour}:${minute < 10? "0":""}$minute $halfNotation";
+      "${hour < 10 && hour != 0 ? "0" : ""}${hour == 0 ? 12 : hour}:${minute < 10 ? "0" : ""}$minute $halfNotation";
   return formattedTime;
 }
